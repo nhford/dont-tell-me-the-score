@@ -1,0 +1,58 @@
+name: Villa recap watcher
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Record current recaps without emailing
+        type: boolean
+        default: false
+      test_email:
+        description: Send a spoiler-safe test email
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for a new recap
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_HOST: ${{ vars.SMTP_HOST || 'smtp.gmail.com' }}
+          SMTP_PORT: ${{ vars.SMTP_PORT || '587' }}
+          EMAIL_TO: ${{ vars.EMAIL_TO || 'noahford.ma@gmail.com' }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM || secrets.SMTP_USER }}
+          WATCH_BASE_URL: ${{ vars.WATCH_BASE_URL || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
+        working-directory: src
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${{ github.event.inputs.seed }}" = "true" ]; then
+            args+=(--seed)
+          fi
+          if [ "${{ github.event.inputs.test_email }}" = "true" ]; then
+            args+=(--test-email)
+          fi
+          python3 checker.py "${args[@]}"
+
+      - name: Persist seen state
+        if: github.event.inputs.test_email != 'true'
+        run: |
+          git config user.name "villa-recap-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/seen.json
+          if git diff --cached --quiet; then
+            echo "state unchanged"
+          else
+            git commit -m "chore: record recap watcher state"
+            git push
+          fi
