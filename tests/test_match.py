@@ -6,7 +6,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from checker import pick_video, Video, watch_url
-from match import duration_rank, is_villa_pl_highlight
+from match import duration_rank, is_pl_highlight, is_villa_pl_highlight
+from teams import parse_teams
 from datetime import datetime, timezone
 
 
@@ -17,20 +18,26 @@ def ts(day: int) -> datetime:
 class MatchTests(unittest.TestCase):
     def test_accepts_club_and_league_recap_titles(self):
         self.assertTrue(
-            is_villa_pl_highlight("Dummy Town vs Aston Villa | Premier League Highlights")
+            is_villa_pl_highlight("Fulham vs Aston Villa | Premier League Highlights")
         )
         self.assertTrue(
-            is_villa_pl_highlight("Aston Villa vs Dummy Town | Premier League Highlights")
+            is_villa_pl_highlight("Aston Villa vs Fulham | Premier League Highlights")
         )
-        self.assertTrue(is_villa_pl_highlight("AVFC vs Dummy Town | PL Highlights"))
+        self.assertTrue(is_villa_pl_highlight("AVFC vs Fulham | PL Highlights"))
+        self.assertTrue(is_pl_highlight("Arsenal vs Chelsea | Premier League Highlights"))
+
+    def test_parses_two_teams_and_strips_scores(self):
+        self.assertEqual(parse_teams("Arsenal 1-0 Chelsea | Premier League Highlights"), ("arsenal", "chelsea"))
+        self.assertEqual(parse_teams("Spurs vs Man City | Highlights"), ("tottenham", "man-city"))
+        self.assertIsNone(parse_teams("Arsenal press conference"))
 
     def test_rejects_compilations_and_non_league_videos(self):
         self.assertFalse(is_villa_pl_highlight("EVERY SINGLE GOAL from Matchweek 12"))
         self.assertFalse(is_villa_pl_highlight("Aston Villa press conference"))
         self.assertFalse(is_villa_pl_highlight("Aston Villa training"))
-        self.assertFalse(is_villa_pl_highlight("Aston Villa vs Dummy Town | FA Cup Highlights"))
+        self.assertFalse(is_villa_pl_highlight("Aston Villa vs Fulham | FA Cup Highlights"))
         self.assertFalse(is_villa_pl_highlight("Aston Villa Women | Premier League Highlights"))
-        self.assertFalse(is_villa_pl_highlight("Unrelated club vs Dummy Town | Premier League Highlights"))
+        self.assertFalse(is_pl_highlight("Unrelated club vs Dummy Town | Premier League Highlights"))
 
     def test_prefers_extended_length_over_short_club_edit(self):
         short = Video("shortid12345", ts(5), "aston-villa", duration=180)

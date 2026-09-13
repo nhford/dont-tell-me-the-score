@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Find a new official Villa PL recap and email a spoiler-safe player link.
+"""Catalog PL recaps and email a spoiler-safe Villa player link.
 
 Never prints titles, thumbnails, scores, or YouTube URLs.
 """
@@ -16,8 +16,8 @@ import sys
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass, replace
+from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -25,20 +25,30 @@ SRC = Path(__file__).resolve().parent
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from match import duration_rank, is_villa_pl_highlight, is_watchable_duration
+from match import duration_rank, is_pl_highlight, is_watchable_duration
+from teams import VILLA_SLUG, frontend_teams, parse_teams
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE_PATH = ROOT / "state" / "seen.json"
+RECAPS_PATH = ROOT / "docs" / "recaps.json"
+TEAMS_PATH = ROOT / "docs" / "teams.json"
 ATOM = {
     "atom": "http://www.w3.org/2005/Atom",
     "yt": "http://www.youtube.com/xml/schemas/2015",
 }
 
 CHANNELS = (
-    ("premier-league", "UCG5qGWdu8nIRZqJ_GgDwQ-w"),
+    ("sky-pl", "UCNAf1k0yIjyGu3k9BwAg3lg"),
+    ("arsenal", "UCpryVRk_VDudG8SHXgWcG0w"),
     ("aston-villa", "UCICNP0mvtr0prFwGUQIABfQ"),
+    ("chelsea", "UCU2PacFf99vhb3hNiYDmxww"),
+    ("everton", "UCtK4QAczAN2mt2ow_jlGinQ"),
+    ("man-united", "UC6yW44UGJJBvYTlfC7CRg2Q"),
+    ("sunderland", "UCrw-7k6yJc0EMJdf-0BAkoQ"),
+    ("premier-league", "UCG5qGWdu8nIRZqJ_GgDwQ-w"),
 )
 
+WINDOW_DAYS = 5
 COOLDOWN = timedelta(hours=36)
 USER_AGENT = "dont-tell-me-the-score/1.0 (spoiler-safe recap watcher)"
 LENGTH_RE = re.compile(r'"lengthSeconds":"(\d+)"')
@@ -49,11 +59,21 @@ class Video:
     video_id: str
     published: datetime
     channel: str
+    home: str | None = None
+    away: str | None = None
     duration: int | None = None
 
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def today_utc() -> date:
+    return utcnow().date()
+
+
+def window_start(now: date | None = None) -> date:
+    return (now or today_utc()) - timedelta(days=WINDOW_DAYS - 1)
 
 
 def load_state() -> dict:
@@ -65,6 +85,16 @@ def load_state() -> dict:
 def save_state(state: dict) -> None:
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     STATE_PATH.write_text(json.dumps(state, indent=2) + "\n")
+
+
+def load_recaps() -> list[dict]:
+    if not RECAPS_PATH.exists():
+        return []
+    try:
+        payload = json.loads(RECAPS_PATH.read_text())
+    except json.JSONDecodeError:
+        return []
+    return list(payload.get("recaps") or [])
 
 
 def http_get(url: str, timeout: int = 30) -> bytes:
@@ -86,7 +116,10 @@ def fetch_channel_videos(channel_name: str, channel_id: str) -> list[Video]:
     videos: list[Video] = []
     for entry in root.findall("atom:entry", ATOM):
         title = entry.findtext("atom:title", default="", namespaces=ATOM) or ""
-        if not is_villa_pl_highlight(title):
+        if not is_pl_highlight(title):
+            continue
+        teams = parse_teams(title)
+        if not teams:
             continue
         video_id = entry.findtext("yt:videoId", default="", namespaces=ATOM) or ""
         published_raw = entry.findtext("atom:published", default="", namespaces=ATOM) or ""
@@ -97,6 +130,8 @@ def fetch_channel_videos(channel_name: str, channel_id: str) -> list[Video]:
                 video_id=video_id,
                 published=parse_published(published_raw),
                 channel=channel_name,
+                home=teams[0],
+                away=teams[1],
             )
         )
     return videos
@@ -116,6 +151,58 @@ def pick_video(candidates: list[Video]) -> Video | None:
     if not watchable:
         return None
     return sorted(watchable, key=lambda v: (duration_rank(v.duration), -v.published.timestamp()))[0]
+
+
+def match_key(item: dict | Video) -> tuple[str, frozenset[str]]:
+    if isinstance(item, Video):
+        day = item.published.date().isoformat()
+        return day, frozenset({item.home or "", item.away or ""})
+    return item["date"], frozenset({item["home"], item["away"]})
+
+
+def recap_record(video: Video) -> dict:
+    return {
+        "date": video.published.date().isoformat(),
+        "home": video.home,
+        "away": video.away,
+        "video_id": video.video_id,
+    }
+
+
+def write_catalog(videos: list[Video], start: date) -> int:
+    grouped: dict[tuple[str, frozenset[str]], list[Video]] = {}
+    for video in videos:
+        if not video.home or not video.away or video.published.date() < start:
+            continue
+        grouped.setdefault(match_key(video), []).append(video)
+
+    chosen: dict[tuple[str, frozenset[str]], dict] = {}
+    for existing in load_recaps():
+        day = date.fromisoformat(existing["date"])
+        if day < start or not existing.get("home") or not existing.get("away"):
+            continue
+        chosen[match_key(existing)] = {
+            "date": existing["date"],
+            "home": existing["home"],
+            "away": existing["away"],
+            "video_id": existing["video_id"],
+        }
+
+    for key, candidates in grouped.items():
+        winner = candidates[0]
+        if len(candidates) > 1:
+            scored = [
+                replace(video, duration=video.duration if video.duration is not None else fetch_duration(video.video_id))
+                for video in candidates
+            ]
+            winner = pick_video(scored) or winner
+        chosen[key] = recap_record(winner)
+
+    recaps = sorted(chosen.values(), key=lambda r: (r["date"], r["home"], r["away"]), reverse=True)
+    RECAPS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    RECAPS_PATH.write_text(json.dumps({"updated": utcnow().isoformat(), "recaps": recaps}, indent=2) + "\n")
+    TEAMS_PATH.write_text(json.dumps(frontend_teams(), indent=2) + "\n")
+    return len(recaps)
 
 
 def watch_base_url() -> str:
@@ -185,45 +272,50 @@ def in_cooldown(state: dict, now: datetime) -> bool:
     return now - last < COOLDOWN
 
 
-def run(seed: bool = False, dry_run: bool = False) -> int:
-    state = load_state()
-    seen = set(state.get("seen_ids") or [])
+def collect_videos() -> list[Video]:
     found: list[Video] = []
     for channel_name, channel_id in CHANNELS:
         try:
             found.extend(fetch_channel_videos(channel_name, channel_id))
         except (urllib.error.URLError, TimeoutError, OSError, ET.ParseError) as exc:
             print(f"channel-check-failed:{channel_name}:{type(exc).__name__}", file=sys.stderr)
+    return found
+
+
+def run(seed: bool = False, dry_run: bool = False) -> int:
+    state = load_state()
+    seen = set(state.get("seen_ids") or [])
+    found = collect_videos()
+    if not dry_run:
+        count = write_catalog(found, window_start())
+        print(f"cataloged {count} recap(s)")
+
+    villa_videos = [v for v in found if VILLA_SLUG in {v.home, v.away}]
 
     if seed or not seen:
-        for video in found:
+        for video in villa_videos:
             seen.add(video.video_id)
         state["seen_ids"] = sorted(seen)
         if not dry_run:
             save_state(state)
-        print(f"seeded {len(found)} matching recap(s); future runs notify only for new uploads")
+        print(f"seeded {len(villa_videos)} villa recap(s); future runs email only for new villa uploads")
         return 0
 
-    new_videos = [v for v in found if v.video_id not in seen]
-    if not new_videos:
-        print("no new recap")
+    new_villa = [
+        replace(video, duration=fetch_duration(video.video_id))
+        for video in villa_videos
+        if video.video_id not in seen
+    ]
+    if not new_villa:
+        print("no new villa recap")
         return 0
 
     def mark_seen() -> None:
-        for video in new_videos:
+        for video in new_villa:
             seen.add(video.video_id)
         state["seen_ids"] = sorted(seen)
 
-    enriched = [
-        Video(
-            video_id=v.video_id,
-            published=v.published,
-            channel=v.channel,
-            duration=fetch_duration(v.video_id),
-        )
-        for v in new_videos
-    ]
-    chosen = pick_video(enriched)
+    chosen = pick_video(new_villa)
     if chosen is None:
         if not dry_run:
             mark_seen()
@@ -240,7 +332,7 @@ def run(seed: bool = False, dry_run: bool = False) -> int:
         return 0
 
     if dry_run:
-        print("dry-run: would email one spoiler-safe recap")
+        print("dry-run: would email one spoiler-safe villa recap")
         return 0
 
     notify(chosen.video_id)
@@ -252,8 +344,8 @@ def run(seed: bool = False, dry_run: bool = False) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Spoiler-safe Villa recap watcher")
-    parser.add_argument("--seed", action="store_true", help="Record current recaps without emailing")
+    parser = argparse.ArgumentParser(description="Spoiler-safe PL recap watcher")
+    parser.add_argument("--seed", action="store_true", help="Record current Villa recaps without emailing")
     parser.add_argument("--dry-run", action="store_true", help="Do not write state or send email")
     parser.add_argument("--test-email", action="store_true", help="Send a dummy spoiler-safe email")
     args = parser.parse_args()

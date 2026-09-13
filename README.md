@@ -1,8 +1,8 @@
 # Don't tell me the score
 
-Spoiler-safe Aston Villa Premier League recap watcher.
+Spoiler-safe Premier League recap grid, plus an Aston Villa email watcher.
 
-It watches official YouTube channels for a new Villa league recap, then emails a **spoiler-safe player link** with no score, no title, and no thumbnail. The email never includes a YouTube URL, so Gmail cannot preview the result.
+The GitHub Pages site lists the last 5 days of league recaps as team-logo buttons (no scores, titles, or thumbnails). Clicking one opens the covered player. Villa recaps are also emailed as a spoiler-safe player link, never a YouTube URL.
 
 ## What you should know first
 

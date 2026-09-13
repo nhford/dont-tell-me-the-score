@@ -4,14 +4,8 @@ from __future__ import annotations
 
 import re
 
-VILLA = re.compile(
-    r"\b(?:aston\s*villa|\bavfc\b|\bvilla\b)\b",
-    re.IGNORECASE,
-)
-PREMIER_LEAGUE = re.compile(
-    r"\b(?:premier\s*league|pl)\b",
-    re.IGNORECASE,
-)
+from teams import VILLA_SLUG, parse_teams
+
 HIGHLIGHTS = re.compile(
     r"\b(?:highlights?|extended|recap)\b",
     re.IGNORECASE,
@@ -50,20 +44,22 @@ EXCLUDE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# Prefer the usual 8-15 minute official recap when it exists.
 PREFERRED_DURATION = (7 * 60, 16 * 60)
-# Club YouTube recaps are often shorter; still official and watchable.
 ACCEPTABLE_DURATION = (2 * 60, 20 * 60)
 
 
-def is_villa_pl_highlight(title: str) -> bool:
-    if not title or EXCLUDE.search(title):
+def is_pl_highlight(title: str) -> bool:
+    if not title or EXCLUDE.search(title) or not HIGHLIGHTS.search(title):
         return False
-    return bool(VILLA.search(title) and PREMIER_LEAGUE.search(title) and HIGHLIGHTS.search(title))
+    return parse_teams(title) is not None
+
+
+def is_villa_pl_highlight(title: str) -> bool:
+    teams = parse_teams(title) if is_pl_highlight(title) else None
+    return bool(teams and VILLA_SLUG in teams)
 
 
 def duration_rank(seconds: int | None) -> int:
-    """Lower is better. Unknown duration ranks after a preferred-length video."""
     if seconds is None:
         return 2
     low, high = PREFERRED_DURATION
