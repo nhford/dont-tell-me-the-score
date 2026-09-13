@@ -2,7 +2,7 @@
 
 Spoiler-safe Premier League recap grid, plus an Aston Villa email watcher.
 
-The GitHub Pages site lists the last 5 days of league recaps as team-logo buttons (no scores, titles, or thumbnails). Clicking one opens the covered player. Villa recaps are also emailed as a spoiler-safe player link, never a YouTube URL.
+The GitHub Pages site lists the last 5 days of league recaps as team-logo buttons (no scores, titles, or thumbnails). Clicking one opens the covered player. Videos come from official club YouTube channels so they play outside the UK. Sky Sports highlights are not used; those uploads are Britain-only. Villa recaps are also emailed as a spoiler-safe player link, never a YouTube URL.
 
 ## What you should know first
 

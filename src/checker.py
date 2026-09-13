@@ -37,15 +37,17 @@ ATOM = {
     "yt": "http://www.youtube.com/xml/schemas/2015",
 }
 
+# Official club channels only. Sky Sports highlights are UK-blocked and
+# cannot play in the embedded player for viewers outside Britain.
 CHANNELS = (
-    ("sky-pl", "UCNAf1k0yIjyGu3k9BwAg3lg"),
     ("arsenal", "UCpryVRk_VDudG8SHXgWcG0w"),
     ("aston-villa", "UCICNP0mvtr0prFwGUQIABfQ"),
+    ("brighton", "UC2YbrhnGREhyB8DwXOEO99Q"),
     ("chelsea", "UCU2PacFf99vhb3hNiYDmxww"),
     ("everton", "UCtK4QAczAN2mt2ow_jlGinQ"),
     ("man-united", "UC6yW44UGJJBvYTlfC7CRg2Q"),
     ("sunderland", "UCrw-7k6yJc0EMJdf-0BAkoQ"),
-    ("premier-league", "UCG5qGWdu8nIRZqJ_GgDwQ-w"),
+    ("tottenham", "UCEg25rdRZXg32iwai6N6l0w"),
 )
 
 WINDOW_DAYS = 5
@@ -177,17 +179,6 @@ def write_catalog(videos: list[Video], start: date) -> int:
         grouped.setdefault(match_key(video), []).append(video)
 
     chosen: dict[tuple[str, frozenset[str]], dict] = {}
-    for existing in load_recaps():
-        day = date.fromisoformat(existing["date"])
-        if day < start or not existing.get("home") or not existing.get("away"):
-            continue
-        chosen[match_key(existing)] = {
-            "date": existing["date"],
-            "home": existing["home"],
-            "away": existing["away"],
-            "video_id": existing["video_id"],
-        }
-
     for key, candidates in grouped.items():
         winner = candidates[0]
         if len(candidates) > 1:
