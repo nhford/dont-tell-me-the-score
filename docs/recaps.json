@@ -1,4 +1,29 @@
 {
-  "updated": "2026-09-13T03:45:21.550617+00:00",
-  "recaps": []
+  "updated": "2026-09-13T09:12:55.180197+00:00",
+  "recaps": [
+    {
+      "date": "2026-09-12",
+      "home": "tottenham",
+      "away": "everton",
+      "video_id": "jPWE5tKtKyY"
+    },
+    {
+      "date": "2026-09-12",
+      "home": "sunderland",
+      "away": "arsenal",
+      "video_id": "5tznQTug9jA"
+    },
+    {
+      "date": "2026-09-12",
+      "home": "chelsea",
+      "away": "hull",
+      "video_id": "J42n6v_Nhac"
+    },
+    {
+      "date": "2026-09-11",
+      "home": "sunderland",
+      "away": "ipswich",
+      "video_id": "Oq13NhMmH1M"
+    }
+  ]
 }
