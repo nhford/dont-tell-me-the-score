@@ -1,6 +1,18 @@
 {
-  "updated": "2026-09-16T22:15:39.490984+00:00",
+  "updated": "2026-09-17T00:47:22.694712+00:00",
   "recaps": [
+    {
+      "date": "2026-09-17",
+      "home": "man-united",
+      "away": "brighton",
+      "video_id": "L6J_2LDNQ7w"
+    },
+    {
+      "date": "2026-09-16",
+      "home": "man-united",
+      "away": "brighton",
+      "video_id": "dacYPhgzt64"
+    },
     {
       "date": "2026-09-15",
       "home": "ipswich",
@@ -36,24 +48,6 @@
       "home": "chelsea",
       "away": "hull",
       "video_id": "_YY-NZsX1Y4"
-    },
-    {
-      "date": "2026-09-12",
-      "home": "tottenham",
-      "away": "everton",
-      "video_id": "jPWE5tKtKyY"
-    },
-    {
-      "date": "2026-09-12",
-      "home": "sunderland",
-      "away": "arsenal",
-      "video_id": "qSCuGCI2eZQ"
-    },
-    {
-      "date": "2026-09-12",
-      "home": "chelsea",
-      "away": "hull",
-      "video_id": "J42n6v_Nhac"
     }
   ]
 }
