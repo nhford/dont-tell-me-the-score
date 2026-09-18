@@ -1,4 +1,29 @@
 {
-  "updated": "2026-09-18T06:23:38.363206+00:00",
-  "recaps": []
+  "updated": "2026-09-18T11:39:08.991875+00:00",
+  "recaps": [
+    {
+      "date": "2026-09-17",
+      "home": "man-united",
+      "away": "brighton",
+      "video_id": "L6J_2LDNQ7w"
+    },
+    {
+      "date": "2026-09-16",
+      "home": "man-united",
+      "away": "brighton",
+      "video_id": "dacYPhgzt64"
+    },
+    {
+      "date": "2026-09-15",
+      "home": "ipswich",
+      "away": "arsenal",
+      "video_id": "Le88o_a6Khk"
+    },
+    {
+      "date": "2026-09-14",
+      "home": "man-united",
+      "away": "man-city",
+      "video_id": "ApTrA1NmMuw"
+    }
+  ]
 }
