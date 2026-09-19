@@ -1,4 +1,23 @@
 {
-  "updated": "2026-09-19T03:59:43.478604+00:00",
-  "recaps": []
+  "updated": "2026-09-19T08:44:44.712260+00:00",
+  "recaps": [
+    {
+      "date": "2026-09-18",
+      "home": "brentford",
+      "away": "chelsea",
+      "video_id": "gwrydB4FO_Y"
+    },
+    {
+      "date": "2026-09-17",
+      "home": "man-united",
+      "away": "brighton",
+      "video_id": "L6J_2LDNQ7w"
+    },
+    {
+      "date": "2026-09-16",
+      "home": "man-united",
+      "away": "brighton",
+      "video_id": "dacYPhgzt64"
+    }
+  ]
 }
