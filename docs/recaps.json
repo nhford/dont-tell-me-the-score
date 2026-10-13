@@ -1,4 +1,29 @@
 {
-  "updated": "2026-10-13T03:23:16.735180+00:00",
-  "recaps": []
+  "updated": "2026-10-13T23:00:38.953895+00:00",
+  "recaps": [
+    {
+      "date": "2026-10-12",
+      "home": "hull",
+      "away": "everton",
+      "video_id": "3FTZ4IyrVLE"
+    },
+    {
+      "date": "2026-10-11",
+      "home": "hull",
+      "away": "everton",
+      "video_id": "J1zrWRGNArs"
+    },
+    {
+      "date": "2026-10-11",
+      "home": "chelsea",
+      "away": "bournemouth",
+      "video_id": "06dvvp2ORLM"
+    },
+    {
+      "date": "2026-10-10",
+      "home": "chelsea",
+      "away": "bournemouth",
+      "video_id": "mL-qGgJf6Ug"
+    }
+  ]
 }
